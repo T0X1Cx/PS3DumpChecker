@@ -1,3 +1,7 @@
+Build 506 2026-08-27:
+ - Changed: The embedded 4.92 patch replaced by a 4.93 patch built from Evilnat's 4.93 custom firmware CoreOS.
+ - Added: OFW and Patched 4.93 ROS hashes.
+ - Added: tools/ to decrypt CoreOS from a PUP, build ROS hashes, and validate the data files.
 Build 505 2025-03-07:
  - Changed: The embedded 4.91 patch replaced by a 4.92 patch built from Evilnat's 4.92 custom firmware CoreOS.
  - Added: OFW and Patched 4.92 ROS hashes.
