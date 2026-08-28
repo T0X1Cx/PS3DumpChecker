@@ -24,6 +24,7 @@ import argparse
 import hashlib
 import os
 import sys
+from xml.sax.saxutils import quoteattr
 
 # Size of the ROS region hashed by PS3DumpChecker (HashCheck.cs / hashlist.xml).
 ROS_SIZE = 0x6FFFE0
@@ -77,7 +78,7 @@ def describe(path):
 
 
 def xml_entry(name, md5, patched):
-    attrs = 'name="%s" size="%X"' % (name, ROS_SIZE)
+    attrs = 'name=%s size="%X"' % (quoteattr(name), ROS_SIZE)
     if patched:
         attrs += ' patched="true"'
     return '    <hash %s>\n      %s\n    </hash>' % (attrs, md5)

@@ -2,16 +2,23 @@
 """
 pup_info.py - Print the header and entry table of a PS3UPDAT.PUP.
 
-Useful for confirming a PUP is what you think it is before unpacking it, and
-for locating entry 512 (CORE_OS_PACKAGE.pkg). Optionally extracts one entry.
+Useful for confirming a PUP is what you think it is before decrypting it, and
+for spotting layout changes. Optionally extracts one entry raw.
 
 Usage:
     python pup_info.py PS3UPDAT.PUP
-    python pup_info.py PS3UPDAT.PUP --extract 512 --out CORE_OS_PACKAGE.pkg
+    python pup_info.py PS3UPDAT.PUP --extract 768 --out update_files.tar
 
-Note: extracting entry 512 gives the *encrypted* CoreOS package. Decrypting it
-into a usable `content` payload needs PUAD GUI, pupunpack, or scetool with a
-keyfile -- see README.md.
+Note: extracting an entry yields the *encrypted* SCE package. For the ROS
+`content` blob PS3DumpChecker consumes, use `coreos_decrypt.py` instead, which
+walks the PUP and decrypts the CoreOS package end-to-end.
+
+The CoreOS package appears in two places in a modern retail PUP:
+  - top-level entry 0x200, and
+  - inside `update_files.tar` (entry 0x300).
+The two blobs differ in wrapping but decrypt to the same 7,340,000-byte ROS
+payload. `coreos_decrypt.py` walks the tar, matching the console's install
+path.
 
 Exit codes: 0 ok, 1 error.
 """
@@ -24,16 +31,15 @@ MAGIC = b"SCEUF"
 HEADER_SIZE = 0x30
 ENTRY_SIZE = 0x20
 
-# Entry ids seen in retail PUPs. Ids are the values in the entry table, so
-# 0x200 (512) is the CoreOS package -- the one this repo cares about.
+# Entry ids seen in retail PUPs.
 KNOWN_ENTRIES = {
     0x100: "version.txt",
     0x101: "license.xml",
     0x103: "promo_flags.txt",
-    0x200: "CORE_OS_PACKAGE.pkg",
+    0x200: "CORE_OS_PACKAGE.pkg (top-level)",
     0x201: "UPDATE_FILES.pkg",
     0x202: "spkg_hdr.tar",
-    0x300: "update_files.tar",
+    0x300: "update_files.tar (contains CORE_OS_PACKAGE.pkg)",
     0x501: "CORE_OS_PACKAGE.pkg digests",
     0x601: "CORE_OS_PACKAGE.pkg signature",
 }

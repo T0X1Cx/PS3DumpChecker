@@ -14,7 +14,7 @@ patches. That is what ros_hash.py needs and what ships as patch.bin.
 
 Usage:
     python coreos_decrypt.py PS3UPDAT.PUP out_dir
-    python coreos_decrypt.py --self-only PS3UPDAT.PUP content
+    python coreos_decrypt.py --extract-selfs PS3UPDAT.PUP out_dir
 
 Exit codes: 0 ok, 1 error.
 """
@@ -88,7 +88,14 @@ def parse_pup(path):
 
     if not data.startswith(PUP_MAGIC):
         raise ValueError("not a PUP (magic mismatch)")
+    if len(data) < PUP_HEADER:
+        raise ValueError("truncated PUP header")
     n = be64(data, 0x18)
+    table_end = PUP_HEADER + PUP_ENTRY * n
+    if n > 0x1000 or table_end > len(data):
+        raise ValueError(
+            "PUP claims %d entries, table would need 0x%X bytes of a %d-byte file"
+            % (n, table_end, len(data)))
     entries = []
     for i in range(n):
         base = PUP_HEADER + PUP_ENTRY * i
@@ -288,10 +295,22 @@ def main(argv=None):
     print("      wrote %s (%d bytes)" % (content_path, len(content)))
 
     if args.extract_selfs:
+        out_root = os.path.realpath(args.out)
         for name, blob in cosunpkg_files(content):
             if not name:
                 continue
+            # Reject path traversal in archive-supplied names: no absolute
+            # paths, no drive letters, no separators. CoreOS entries are flat
+            # basenames like "lv0" or "lv2_kernel.self".
+            if (os.path.isabs(name) or "/" in name or "\\" in name
+                    or name in (".", "..") or ":" in name):
+                print("      skip %r (unsafe path)" % name, file=sys.stderr)
+                continue
             out = os.path.join(args.out, name)
+            if not os.path.realpath(out).startswith(out_root + os.sep) \
+                    and os.path.realpath(out) != out_root:
+                print("      skip %r (escapes out dir)" % name, file=sys.stderr)
+                continue
             with open(out, "wb") as fh:
                 fh.write(blob)
             print("      wrote %s (%d bytes)" % (out, len(blob)))

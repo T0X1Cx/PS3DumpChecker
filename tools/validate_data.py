@@ -113,13 +113,15 @@ def validate_hashlist(path, rep):
                 seen_name[name] = body
 
             size_attr = hash_el.get("size")
-            if size_attr is not None:
+            if size_attr is None:
+                rep.error("%s: <hash> missing size attribute" % name)
+            else:
                 size = parse_hex(size_attr)
                 if size is None:
                     rep.error("%s: size=%r is not hex" % (name, size_attr))
                 elif size != ROS_SIZE:
-                    rep.warn("%s: size 0x%X differs from the usual ROS size 0x%X"
-                             % (name, size, ROS_SIZE))
+                    rep.error("%s: size 0x%X differs from the ROS size 0x%X"
+                              % (name, size, ROS_SIZE))
 
             patched = hash_el.get("patched")
             if patched is not None and patched.lower() not in ("true", "false"):
