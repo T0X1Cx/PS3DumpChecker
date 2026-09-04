@@ -51,6 +51,34 @@ Catches duplicate MD5s, duplicate entry names, malformed hashes, non-hex size
 and offset attributes, bad `patched` values, offsets missing attributes, and
 hashes referencing a type that was never declared. Exits non-zero on error.
 
+## build_nofsm_patch.py
+
+Rebuilds the exact `patch.bin` that PS3Xploit flash-writer 4.93 writes to
+flash. Uses only public inputs (OFW 4.93 CoreOS + `flash493.P3T` from
+`aldostools/flashwriter`). Result matches
+MD5 `AFE831050C31EFB381F9BE4098F1834C` byte-for-byte, i.e. the same ROS
+`pyPS3patcher` and the PS3 Toolset will ship for 4.93 -- so the three tools
+stay in sync and the patched ROS is the safe non-Cobra variant, not the
+Cobra CFW CoreOS.
+
+```
+python tools/build_nofsm_patch.py ofw_content flash493.P3T patch.bin
+```
+
+Get the inputs with:
+
+- `python tools/coreos_decrypt.py PS3UPDAT_493_OFW.PUP ofw_out`
+  (yields `ofw_out/content`)
+- `curl -LO https://raw.githubusercontent.com/aldostools/flashwriter/main/493/flash493.P3T`
+
+The transformation is a byte splice:
+
+    patched_ros = OFW[0 : 0x1D0] + P3T[:] + OFW[0x1D0 + len(P3T) :]
+
+The P3T is a partial-ROS overlay whose body mirrors the OFW ROS from
+offset 0x1D0 with only a few SELFs actually modified
+(`sdk_version`, `spu_pkg_rvk_verifier.self`, `default.spp`, `lv1.self`).
+
 ## coreos_decrypt.py
 
 Decrypts `CORE_OS_PACKAGE.pkg` out of a PUP and writes the `content` blob --
